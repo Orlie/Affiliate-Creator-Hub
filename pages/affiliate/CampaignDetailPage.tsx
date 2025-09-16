@@ -1,0 +1,310 @@
+
+import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { Campaign, SampleRequest, SampleRequestStatus, GlobalSettings } from '../../types';
+import { fetchCampaignById, submitSampleRequest, listenToSampleRequestsForAffiliate, affiliateConfirmsShowcase, listenToGlobalSettings, createDirectSampleRequest } from '../../services/mockApi';
+import { useAuth } from '../../contexts/AuthContext';
+import Card, { CardContent } from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import { LightbulbIcon, ChevronLeftIcon } from '../../components/icons/Icons';
+
+
+const STATUS_MAP: Record<SampleRequestStatus, { step: number; label: string }> = {
+    'PendingApproval': { step: 1, label: 'Request Submitted' },
+    'Rejected': { step: 1, label: 'Request Rejected' },
+    'PendingShowcase': { step: 2, label: 'Admin Approved' },
+    'PendingOrder': { step: 3, label: 'Added to Showcase' },
+    'Shipped': { step: 4, label: 'Sample Shipped' },
+};
+const STATUS_STEPS = ['Request Submitted', 'Admin Approved', 'Added to Showcase', 'Sample Shipped'];
+
+interface CampaignDetailPageProps {
+    onActionSuccess: () => void;
+}
+
+const CampaignDetailPage: React.FC<CampaignDetailPageProps> = ({ onActionSuccess }) => {
+    const { campaignId } = useParams<{ campaignId: string }>();
+    const { user } = useAuth();
+
+    const [campaign, setCampaign] = useState<Campaign | null>(null);
+    const [request, setRequest] = useState<SampleRequest | undefined>(undefined);
+    const [settings, setSettings] = useState<GlobalSettings | null>(null);
+    const [loading, setLoading] = useState(true);
+    
+    // State for video submission form
+    const [fyneVideoUrl, setFyneVideoUrl] = useState('');
+    const [adCode, setAdCode] = useState('');
+    const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // State for showcase confirmation action
+    const [isConfirming, setIsConfirming] = useState(false);
+    const [showcaseError, setShowcaseError] = useState('');
+    const [showcaseSuccess, setShowcaseSuccess] = useState('');
+
+
+    useEffect(() => {
+        const loadInitialData = async () => {
+            if (!campaignId) return;
+            setLoading(true);
+            try {
+                const currentCampaign = await fetchCampaignById(campaignId);
+                setCampaign(currentCampaign);
+            } catch (err) {
+                console.error("Failed to load campaign details", err);
+                setError("Failed to load campaign details.");
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadInitialData();
+    }, [campaignId]);
+
+    useEffect(() => {
+        if (!user || !campaignId) return;
+        
+        const unsubRequests = listenToSampleRequestsForAffiliate(user.uid, (userRequests) => {
+             const currentRequest = userRequests.find(r => r.campaignId === campaignId);
+             setRequest(currentRequest);
+        });
+
+        const unsubSettings = listenToGlobalSettings(setSettings);
+
+        return () => {
+            unsubRequests();
+            unsubSettings();
+        };
+    }, [user, campaignId]);
+
+
+    const handleRequestSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setSuccessMessage('');
+        if (!campaign || !user || isSubmitting) return;
+
+        setIsSubmitting(true);
+        const result = await submitSampleRequest({ 
+            campaignId: campaign.id,
+            affiliateId: user.uid,
+            fyneVideoUrl,
+            adCode 
+        });
+
+        if (result.success) {
+            setSuccessMessage(result.message);
+            // Request state will update via listener
+            setFyneVideoUrl('');
+            setAdCode('');
+            onActionSuccess(); // Trigger survey check
+        } else {
+            setError(result.message);
+        }
+        setIsSubmitting(false);
+    };
+
+    const handleAddToShowcase = async () => {
+        if (!campaign || !user || isConfirming) return;
+        
+        setShowcaseError('');
+        setShowcaseSuccess('');
+        setIsConfirming(true);
+
+        // Always open the share link in a new tab
+        window.open(campaign.shareLink, '_blank');
+
+        try {
+            let success = false;
+            // Approval OFF Flow: Handle both creating a new request or advancing an existing one.
+            if (!settings?.requireVideoApproval) {
+                if (request) {
+                    // An optional request was already made ('PendingApproval'). Just advance it.
+                    await affiliateConfirmsShowcase(request.id);
+                    setShowcaseSuccess("Confirmed! Your request is ready for admin to order.");
+                    success = true;
+                } else {
+                    // No request was made yet. Create a direct one.
+                    const result = await createDirectSampleRequest(user.uid, campaign.id);
+                    if (result.success) {
+                        setShowcaseSuccess("Confirmed! Admin has been notified to order your sample.");
+                        success = true;
+                    } else {
+                        setShowcaseError(result.message);
+                    }
+                }
+            } 
+            // Approval ON Flow (the original logic for 'PendingShowcase' status)
+            else if (request && request.status === 'PendingShowcase') {
+                await affiliateConfirmsShowcase(request.id);
+                success = true;
+                // No success message needed here, the status tracker is enough.
+            }
+            if (success) {
+                onActionSuccess(); // Trigger survey check
+            }
+        } catch (error) {
+            console.error("Failed to confirm showcase add:", error);
+            setShowcaseError("There was an issue confirming your action. Please try again.");
+        } finally {
+            setIsConfirming(false);
+        }
+    };
+    
+    if (loading || settings === null) return <p className="p-4 text-center">Loading campaign details...</p>;
+    if (!campaign) return <p className="p-4 text-center">Campaign not found.</p>;
+
+    const requireApproval = settings?.requireVideoApproval ?? true;
+    const isApproved = request?.status === 'PendingShowcase';
+    const isUnlocked = !requireApproval || isApproved;
+    
+    const currentStatusInfo = request ? STATUS_MAP[request.status] : null;
+    const currentStep = currentStatusInfo ? currentStatusInfo.step : 0;
+
+    return (
+        <div className="p-4 space-y-6">
+             <Link to="/campaigns" className="inline-flex items-center text-sm text-text-secondary hover:text-primary font-medium mb-2">
+                <ChevronLeftIcon className="h-5 w-5 mr-1" />
+                Back to Campaigns
+            </Link>
+            
+            <Section title="Product Details">
+                <Card className="overflow-hidden">
+                    <img className="h-56 w-full object-cover" src={campaign.imageUrl} alt={campaign.name} />
+                    <CardContent>
+                        <div className="flex justify-between items-start">
+                            <h1 className="text-2xl font-bold text-text-primary">{campaign.name}</h1>
+                             <div className="text-right">
+                                <p className="text-2xl font-bold text-primary">{campaign.commission}%</p>
+                                <p className="text-xs text-text-secondary">Commission</p>
+                            </div>
+                        </div>
+                        <p className="mt-2 text-text-secondary">
+                            View the full product page <a href={campaign.productUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">here</a>.
+                        </p>
+                        {campaign.contentDocUrl && (
+                            <a href={campaign.contentDocUrl} target="_blank" rel="noopener noreferrer" className="block mt-4">
+                                <Button variant="secondary" className="w-full flex items-center justify-center">
+                                    <LightbulbIcon className="h-5 w-5 mr-2" />
+                                    Content Inspo
+                                </Button>
+                            </a>
+                        )}
+                    </CardContent>
+                </Card>
+            </Section>
+            
+            {request && (
+                <Section title="Request Status">
+                    <Card>
+                        <CardContent>
+                            <div className="relative pt-8">
+                                <div className="absolute top-1/2 left-0 w-full h-0.5 bg-border" style={{transform: 'translateY(-50%)'}}></div>
+                                <div className="absolute top-1/2 left-0 h-0.5 bg-primary" style={{transform: 'translateY(-50%)', width: `${((currentStep - 1) / (STATUS_STEPS.length - 1)) * 100}%`}}></div>
+                                <div className="flex justify-between items-start relative">
+                                    {STATUS_STEPS.map((label, index) => {
+                                        const stepNumber = index + 1;
+                                        const isActive = stepNumber <= currentStep;
+                                        const isCurrent = stepNumber === currentStep;
+                                        return (
+                                            <div key={label} className="flex flex-col items-center text-center w-1/4">
+                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${isActive ? 'bg-primary border-primary' : 'bg-surface border-border'}`}>
+                                                    {isActive && <div className="w-2 h-2 bg-white rounded-full"></div>}
+                                                </div>
+                                                <p className={`mt-2 text-xs font-semibold ${isCurrent ? 'text-primary' : 'text-text-secondary'}`}>{label}</p>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                            {request.status === 'Rejected' && <p className="text-center text-red-500 mt-4 text-sm font-medium">Your request was rejected. Please check your tickets for more information.</p>}
+                        </CardContent>
+                    </Card>
+                </Section>
+            )}
+
+            <Section title="Your Actions">
+                <div className="space-y-4">
+                    <Card>
+                        <CardContent>
+                             <h2 className="text-lg font-bold">
+                                {requireApproval ? "1. Request a Sample" : "1. Submit a Partner Video (Optional but Encouraged)"}
+                            </h2>
+                            {!request ? (
+                                <>
+                                    <p className="text-sm text-text-secondary mt-1">
+                                    {requireApproval 
+                                        ? "Submit a new video of a partner product to request a free sample of this product."
+                                        : "To request this sample, you can optionally submit a recent video you've made about one of our core partner products."
+                                    }
+                                    </p>
+                                    <p className="text-xs text-primary mt-2 p-2 bg-primary/10 rounded-lg">
+                                       Please note: To remain eligible for future free samples, we encourage creating at least one partner video per week.
+                                    </p>
+                                    <form onSubmit={handleRequestSubmit} className="mt-6 space-y-4">
+                                        <Input label="Partner Video URL" placeholder="https://tiktok.com/video/..." value={fyneVideoUrl} onChange={e => setFyneVideoUrl(e.target.value)} required data-testid="fyne-video-url-input" />
+                                        <Input label="Ad Code" placeholder="CODE123" value={adCode} onChange={e => setAdCode(e.target.value)} required data-testid="ad-code-input"/>
+                                        {error && <p className="text-red-500 text-sm">{error}</p>}
+                                        {successMessage && <p className="text-green-500 text-sm">{successMessage}</p>}
+                                        <Button type="submit" className="w-full" disabled={isSubmitting}>{isSubmitting ? 'Submitting...' : 'Submit Request'}</Button>
+                                    </form>
+                                </>
+                            ) : (
+                                 <p className="mt-2 text-sm text-text-secondary">
+                                   Your request is being processed. You can monitor its progress in the status tracker above.
+                                 </p>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardContent className={`${!isUnlocked ? 'opacity-50' : ''}`}>
+                            <h2 className="text-lg font-bold">2. Creator Tools</h2>
+                            <p className="text-sm text-text-secondary mt-1">
+                                {requireApproval ? "Once approved, add the product to your showcase." : "Use these tools to promote the product."}
+                            </p>
+                            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                                <div className="text-center">
+                                    <img 
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(campaign.shareLink)}&bgcolor=1F1F1F&color=FFFFFF`} 
+                                        alt="Campaign Share Link QR Code"
+                                        className="mx-auto rounded-lg"
+                                    />
+                                    <p className="text-xs mt-2 text-text-secondary">Scan to Share</p>
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <Button 
+                                        className="w-full"
+                                        data-testid="showcase-button"
+                                        disabled={!isUnlocked || isConfirming}
+                                        onClick={handleAddToShowcase}
+                                    >
+                                        {isConfirming ? 'Confirming...' : 'Add to Showcase & Confirm'}
+                                    </Button>
+                                    {showcaseError && <p className="text-center text-red-500 text-sm mt-2">{showcaseError}</p>}
+                                    {showcaseSuccess && <p className="text-center text-green-500 text-sm mt-2">{showcaseSuccess}</p>}
+                                </div>
+                            </div>
+                            {!isUnlocked && (
+                                <p className="text-center text-xs text-yellow-400 mt-2 font-semibold">
+                                    Locked until request is approved.
+                                </p>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            </Section>
+        </div>
+    );
+};
+
+
+const Section: React.FC<{title: string; children: React.ReactNode}> = ({ title, children }) => (
+    <div>
+        <h2 className="text-sm font-bold uppercase text-text-secondary tracking-wider mb-3">{title}</h2>
+        {children}
+    </div>
+);
+
+export default CampaignDetailPage;

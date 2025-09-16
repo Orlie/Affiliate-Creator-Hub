@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Affiliate Creator Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+            colors: {
+              background: '#121212',
+              surface: '#1F1F1F',
+              primary: '#25F4EE', // Cyan
+              secondary: '#FE2C55', // Magenta
+              border: '#333333',
+              'text-primary': '#FFFFFF',
+              'text-secondary': '#A9A9A9',
+            },
+            keyframes: {
+              'pulse-glow-magenta': {
+                '0%, 100%': { boxShadow: '0 0 10px rgba(254, 44, 85, 0.5)' },
+                '50%': { boxShadow: '0 0 20px rgba(254, 44, 85, 1)' },
+              },
+              'pulse-glow-cyan': {
+                '0%, 100%': { boxShadow: '0 0 10px rgba(37, 244, 238, 0.5)' },
+                '50%': { boxShadow: '0 0 20px rgba(37, 244, 238, 1)' },
+              },
+            },
+            animation: {
+              'pulse-glow-magenta': 'pulse-glow-magenta 2s ease-in-out infinite',
+              'pulse-glow-cyan': 'pulse-glow-cyan 2s ease-in-out infinite',
+            },
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.8.2",
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "@google/genai": "https://esm.run/@google/genai",
+    "firebase/": "https://aistudiocdn.com/firebase@^12.2.1/",
+    "@firebase/auth": "https://aistudiocdn.com/@firebase/auth@^1.11.0",
+    "@firebase/app": "https://aistudiocdn.com/@firebase/app@^0.14.2",
+    "@firebase/firestore": "https://aistudiocdn.com/@firebase/firestore@^4.9.1"
+  }
+}
+</script>
+</head>
+  <body class="bg-background text-text-primary font-sans">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
