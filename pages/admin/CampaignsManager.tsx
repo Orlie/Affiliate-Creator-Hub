@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { Campaign } from '../../types';
 import { listenToAllCampaignsAdmin, syncCampaignsFromGoogleSheet } from '../../services/mockApi';
@@ -41,6 +39,13 @@ const CampaignsManager: React.FC = () => {
         setSyncMessage('Please paste the Google Sheet link before syncing.');
         return;
     }
+
+    const confirmationMessage = "Are you sure you want to sync? This will UPDATE existing campaigns, ADD new ones, and DELETE any campaigns from the hub that are NOT in the Google Sheet. This action cannot be undone.";
+    if (!window.confirm(confirmationMessage)) {
+        setSyncMessage('Sync cancelled by user.');
+        return;
+    }
+
     setIsSyncing(true);
     setSyncMessage('Fetching from URL, parsing data, and updating database...');
     const result = await syncCampaignsFromGoogleSheet(sheetUrl);

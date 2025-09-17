@@ -1,4 +1,3 @@
-
 import { 
     User, Campaign, SampleRequest, SampleRequestStatus, Leaderboard, ResourceArticle, 
     IncentiveCampaign, Ticket, TicketStatus, LeaderboardEntry, PasswordResetRequest, GlobalSettings,
@@ -244,9 +243,21 @@ const processCampaignCsv = async (csvText: string): Promise<{success: boolean, m
     if (!db) return { success: false, message: 'Database not connected.' };
 
     try {
+        const campaignsCol = collection(db, 'campaigns');
+        const existingDocsSnapshot = await getDocs(query(campaignsCol));
+        const existingCampaignIds = new Set(existingDocsSnapshot.docs.map(d => d.id));
+
         const lines = csvText.trim().split('\n').filter(line => line.trim() !== '');
-        if (lines.length < 2) {
-            return { success: false, message: "CSV is empty or contains only a header." };
+        
+        // Handle empty or header-only sheets as a command to delete all campaigns.
+        if (lines.length <= 1) {
+            if (existingDocsSnapshot.empty) {
+                return { success: true, message: "Sync successful. Sheet is empty and no campaigns to remove." };
+            }
+            const batch = writeBatch(db);
+            existingDocsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+            return { success: true, message: `Sync successful. Removed all ${existingDocsSnapshot.size} campaigns as the sheet was empty.` };
         }
 
         const headers = parseCsvLine(lines[0]).map(h => h.trim());
@@ -264,18 +275,24 @@ const processCampaignCsv = async (csvText: string): Promise<{success: boolean, m
                 campaignObj[header] = values[index] ? values[index].trim() : '';
             });
             return campaignObj;
-        });
+        }).filter(c => c.id); // Ensure campaign has an ID to be processed
 
         if (campaignsToSync.length === 0) {
-            return { success: false, message: "No valid campaign data rows found in the sheet." };
+             return { success: false, message: "No campaign data rows with valid IDs found in the sheet." };
         }
-        
-        const campaignsCol = collection(db, 'campaigns');
-        const existingDocsSnapshot = await getDocs(query(campaignsCol));
-        const existingDocs = new Map(existingDocsSnapshot.docs.map(d => [d.id, d.data()]));
 
+        const sheetCampaignIds = new Set(campaignsToSync.map(c => c.id.trim()));
+        const campaignsToDelete = [...existingCampaignIds].filter(id => !sheetCampaignIds.has(id));
+        
         const batch = writeBatch(db);
 
+        // 1. Handle Deletions
+        campaignsToDelete.forEach(id => {
+            const docRef = doc(campaignsCol, id);
+            batch.delete(docRef);
+        });
+
+        // 2. Handle Additions/Updates
         campaignsToSync.forEach((campaign: any) => {
             if (campaign.id && typeof campaign.id === 'string' && campaign.name) {
                 const docRef = doc(campaignsCol, campaign.id.trim());
@@ -295,8 +312,8 @@ const processCampaignCsv = async (csvText: string): Promise<{success: boolean, m
                     orderLink: campaign.orderLink || '',
                 };
 
-                // Handle creation date
-                if (!existingDocs.has(campaign.id.trim())) {
+                // Handle creation date only for new campaigns
+                if (!existingCampaignIds.has(campaign.id.trim())) {
                     const providedDate = campaign.createdAt ? new Date(campaign.createdAt) : null;
                     if (providedDate && !isNaN(providedDate.getTime())) {
                         campaignData.createdAt = Timestamp.fromDate(providedDate);
@@ -310,7 +327,12 @@ const processCampaignCsv = async (csvText: string): Promise<{success: boolean, m
         });
 
         await batch.commit();
-        return { success: true, message: `Sync successful. ${campaignsToSync.length} campaigns were processed.` };
+
+        let message = `Sync successful. ${campaignsToSync.length} campaigns were processed.`;
+        if (campaignsToDelete.length > 0) {
+            message += ` ${campaignsToDelete.length} obsolete campaigns were removed.`;
+        }
+        return { success: true, message };
 
     } catch (error) {
         console.error("Error during campaign sync:", error);
