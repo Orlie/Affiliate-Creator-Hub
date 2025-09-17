@@ -120,6 +120,8 @@ export interface GlobalSettings {
   requireVideoApproval: boolean;
   discordInviteUrl?: string;
   facebookGroupUrl?: string;
+  tiktokShowcaseUrl?: string;
+  youtubeTutorialUrl?: string;
 }
 
 // --- New Types for Community Engagement ---

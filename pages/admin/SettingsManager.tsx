@@ -8,10 +8,18 @@ import Button from '../../components/ui/Button';
 const SettingsManager: React.FC = () => {
   const [settings, setSettings] = useState<GlobalSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Community Links state
   const [discordUrl, setDiscordUrl] = useState('');
   const [facebookUrl, setFacebookUrl] = useState('');
   const [isSavingLinks, setIsSavingLinks] = useState(false);
   const [linksSaved, setLinksSaved] = useState(false);
+
+  // Onboarding Links state
+  const [tiktokUrl, setTiktokUrl] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [isSavingOnboarding, setIsSavingOnboarding] = useState(false);
+  const [onboardingSaved, setOnboardingSaved] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -20,6 +28,8 @@ const SettingsManager: React.FC = () => {
       if (data) {
         setDiscordUrl(data.discordInviteUrl || '');
         setFacebookUrl(data.facebookGroupUrl || '');
+        setTiktokUrl(data.tiktokShowcaseUrl || '');
+        setYoutubeUrl(data.youtubeTutorialUrl || '');
       }
       setLoading(false);
     });
@@ -43,11 +53,37 @@ const SettingsManager: React.FC = () => {
         });
         setLinksSaved(true);
         setTimeout(() => setLinksSaved(false), 2500);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to save links:", error);
-        alert("There was an error saving the links. Please try again.");
+        let errorMessage = "There was an error saving the links. Please try again.";
+        if (error.code === 'permission-denied') {
+            errorMessage = "Permission Denied: Your account does not have permission to save these settings. Please check your Firestore security rules to ensure admins have write access to the 'settings' collection.";
+        }
+        alert(errorMessage);
     } finally {
         setIsSavingLinks(false);
+    }
+  };
+
+  const handleSaveOnboardingLinks = async () => {
+    setIsSavingOnboarding(true);
+    setOnboardingSaved(false);
+    try {
+        await updateGlobalSettings({
+            tiktokShowcaseUrl: tiktokUrl,
+            youtubeTutorialUrl: youtubeUrl,
+        });
+        setOnboardingSaved(true);
+        setTimeout(() => setOnboardingSaved(false), 2500);
+    } catch (error: any) {
+        console.error("Failed to save onboarding links:", error);
+        let errorMessage = "There was an error saving the links. Please try again.";
+        if (error.code === 'permission-denied') {
+            errorMessage = "Permission Denied: Your account does not have permission to save these settings. Please check your Firestore security rules.";
+        }
+        alert(errorMessage);
+    } finally {
+        setIsSavingOnboarding(false);
     }
   };
 
@@ -114,6 +150,34 @@ const SettingsManager: React.FC = () => {
             <div className="mt-6">
                 <Button onClick={handleSaveLinks} disabled={isSavingLinks} className="w-full">
                     {isSavingLinks ? 'Saving...' : linksSaved ? 'Saved!' : 'Save Community Links'}
+                </Button>
+            </div>
+        </CardContent>
+      </Card>
+
+       <Card className="mt-8 max-w-2xl">
+        <CardContent>
+            <h2 className="text-xl font-bold">Onboarding Links</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Manage links used in the multi-step affiliate onboarding guide. Leave blank to hide a button.
+            </p>
+            <div className="mt-6 space-y-4">
+                <Input
+                    label="TikTok Showcase URL"
+                    value={tiktokUrl}
+                    onChange={(e) => setTiktokUrl(e.target.value)}
+                    placeholder="https://affiliate-us.tiktok.com/..."
+                />
+                <Input
+                    label="Tutorial Video URL"
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    placeholder="https://youtube.com/shorts/..."
+                />
+            </div>
+            <div className="mt-6">
+                <Button onClick={handleSaveOnboardingLinks} disabled={isSavingOnboarding} className="w-full">
+                    {isSavingOnboarding ? 'Saving...' : onboardingSaved ? 'Saved!' : 'Save Onboarding Links'}
                 </Button>
             </div>
         </CardContent>
