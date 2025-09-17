@@ -1,17 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import Card, { CardContent } from '../ui/Card';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
-
-const DISCORD_INVITE_URL = 'https://discord.gg/HzWTjkJRqx';
-const FACEBOOK_GROUP_URL = 'https://www.facebook.com/groups/fyneskincare';
+import { listenToGlobalSettings } from '../../services/mockApi';
+import { GlobalSettings } from '../../types';
 
 const CommunityOnboardingGate: React.FC = () => {
     const { user, updateProfile } = useAuth();
     const [discordUsername, setDiscordUsername] = useState(user?.discordUsername || '');
+    const [settings, setSettings] = useState<GlobalSettings | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        const unsubscribe = listenToGlobalSettings(setSettings);
+        return () => unsubscribe();
+    }, []);
 
     const showDiscordInput = !user?.discordUsername;
 
@@ -52,12 +57,16 @@ const CommunityOnboardingGate: React.FC = () => {
                     </p>
 
                     <div className="mt-6 space-y-3">
-                        <a href={DISCORD_INVITE_URL} target="_blank" rel="noopener noreferrer" className="block">
-                            <Button variant="secondary" className="w-full">Join our Discord</Button>
-                        </a>
-                        <a href={FACEBOOK_GROUP_URL} target="_blank" rel="noopener noreferrer" className="block">
-                            <Button variant="secondary" className="w-full">Join our Facebook Group</Button>
-                        </a>
+                        {settings?.discordInviteUrl && (
+                            <a href={settings.discordInviteUrl} target="_blank" rel="noopener noreferrer" className="block">
+                                <Button variant="secondary" className="w-full">Join our Discord</Button>
+                            </a>
+                        )}
+                        {settings?.facebookGroupUrl && (
+                            <a href={settings.facebookGroupUrl} target="_blank" rel="noopener noreferrer" className="block">
+                                <Button variant="secondary" className="w-full">Join our Facebook Group</Button>
+                            </a>
+                        )}
                     </div>
                     
                     {showDiscordInput && (

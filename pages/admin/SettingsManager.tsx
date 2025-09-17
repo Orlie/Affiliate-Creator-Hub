@@ -2,15 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { GlobalSettings } from '../../types';
 import { listenToGlobalSettings, updateGlobalSettings } from '../../services/mockApi';
 import Card, { CardContent } from '../../components/ui/Card';
+import Input from '../../components/ui/Input';
+import Button from '../../components/ui/Button';
 
 const SettingsManager: React.FC = () => {
   const [settings, setSettings] = useState<GlobalSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [discordUrl, setDiscordUrl] = useState('');
+  const [facebookUrl, setFacebookUrl] = useState('');
+  const [isSavingLinks, setIsSavingLinks] = useState(false);
+  const [linksSaved, setLinksSaved] = useState(false);
 
   useEffect(() => {
     setLoading(true);
     const unsubscribe = listenToGlobalSettings((data) => {
       setSettings(data);
+      if (data) {
+        setDiscordUrl(data.discordInviteUrl || '');
+        setFacebookUrl(data.facebookGroupUrl || '');
+      }
       setLoading(false);
     });
     return () => unsubscribe();
@@ -22,6 +32,25 @@ const SettingsManager: React.FC = () => {
     setSettings(newSettings); // Optimistic update
     updateGlobalSettings({ [key]: value });
   };
+  
+  const handleSaveLinks = async () => {
+    setIsSavingLinks(true);
+    setLinksSaved(false);
+    try {
+        await updateGlobalSettings({
+            discordInviteUrl: discordUrl,
+            facebookGroupUrl: facebookUrl,
+        });
+        setLinksSaved(true);
+        setTimeout(() => setLinksSaved(false), 2500);
+    } catch (error) {
+        console.error("Failed to save links:", error);
+        alert("There was an error saving the links. Please try again.");
+    } finally {
+        setIsSavingLinks(false);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -58,6 +87,34 @@ const SettingsManager: React.FC = () => {
                         <div className="w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
                     </label>
                 </div>
+            </div>
+        </CardContent>
+      </Card>
+      
+      <Card className="mt-8 max-w-2xl">
+        <CardContent>
+            <h2 className="text-xl font-bold">Community Links</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Manage the community links shown to new affiliates during onboarding. Leave blank to hide a link.
+            </p>
+            <div className="mt-6 space-y-4">
+                <Input
+                    label="Discord Invite URL"
+                    value={discordUrl}
+                    onChange={(e) => setDiscordUrl(e.target.value)}
+                    placeholder="https://discord.gg/..."
+                />
+                <Input
+                    label="Facebook Group URL"
+                    value={facebookUrl}
+                    onChange={(e) => setFacebookUrl(e.target.value)}
+                    placeholder="https://facebook.com/groups/..."
+                />
+            </div>
+            <div className="mt-6">
+                <Button onClick={handleSaveLinks} disabled={isSavingLinks} className="w-full">
+                    {isSavingLinks ? 'Saving...' : linksSaved ? 'Saved!' : 'Save Community Links'}
+                </Button>
             </div>
         </CardContent>
       </Card>

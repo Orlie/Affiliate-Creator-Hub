@@ -118,6 +118,8 @@ export interface PasswordResetRequest {
 
 export interface GlobalSettings {
   requireVideoApproval: boolean;
+  discordInviteUrl?: string;
+  facebookGroupUrl?: string;
 }
 
 // --- New Types for Community Engagement ---
