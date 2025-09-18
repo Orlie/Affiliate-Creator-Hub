@@ -38,7 +38,7 @@ const ContentRewardsManager: React.FC = () => {
                 assets: campaign.assets || [],
             });
         } else {
-            setCurrentCampaignData({ requirements: '', assets: [], platforms: [] });
+            setCurrentCampaignData({ requirements: '', assets: [], platforms: [], status: 'Active' });
         }
         setIsModalOpen(true);
     };
@@ -64,6 +64,10 @@ const ContentRewardsManager: React.FC = () => {
                 ? currentCampaignData.requirements.split('\n').filter(r => r.trim() !== '') 
                 : [],
             assets: currentCampaignData.assets || [],
+            // Ensure new fields have default values to migrate old documents
+            infoBannerText: currentCampaignData.infoBannerText || '',
+            category: currentCampaignData.category || '',
+            disclaimer: currentCampaignData.disclaimer || '',
             contentBrief: '', // Deprecated, but ensure it's cleared
         };
 
@@ -98,7 +102,7 @@ const ContentRewardsManager: React.FC = () => {
                             <div className="flex justify-between items-start">
                                 <div>
                                     <p className="font-bold text-lg text-text-primary">{campaign.title}</p>
-                                    <p className="text-sm text-primary">${campaign.payoutRate.toFixed(2)} / 1k views</p>
+                                    <p className="text-sm text-primary">${(campaign.payoutRate || 0).toFixed(2)} / 1k views</p>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <Button size="sm" variant="secondary" onClick={() => handleOpenModal(campaign)}>Edit</Button>
@@ -108,9 +112,9 @@ const ContentRewardsManager: React.FC = () => {
                              <div className="mt-4">
                                 <p className="text-sm font-medium text-text-secondary">Budget</p>
                                 <div className="w-full bg-background rounded-full h-2.5 mt-1">
-                                    <div className="bg-primary h-2.5 rounded-full" style={{width: `${(campaign.totalPaidOut / campaign.totalBudget) * 100}%`}}></div>
+                                    <div className="bg-primary h-2.5 rounded-full" style={{width: `${((campaign.totalPaidOut || 0) / (campaign.totalBudget || 1)) * 100}%`}}></div>
                                 </div>
-                                <p className="text-xs text-text-secondary mt-1 text-right">${campaign.totalPaidOut.toLocaleString()} / ${campaign.totalBudget.toLocaleString()}</p>
+                                <p className="text-xs text-text-secondary mt-1 text-right">${(campaign.totalPaidOut || 0).toLocaleString()} / ${(campaign.totalBudget || 0).toLocaleString()}</p>
                             </div>
                         </CardContent>
                     </Card>

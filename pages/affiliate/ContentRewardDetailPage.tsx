@@ -97,18 +97,18 @@ const ContentRewardDetailPage: React.FC = () => {
                     <div className="w-full bg-surface rounded-full h-2.5 mt-1">
                         <div className="bg-orange-500 h-2.5 rounded-full" style={{width: `${budgetProgress}%`}}></div>
                     </div>
-                    <p className="text-sm text-text-secondary mt-1">${campaign.totalPaidOut.toLocaleString()} of ${campaign.totalBudget.toLocaleString()} paid out</p>
+                    <p className="text-sm text-text-secondary mt-1">${(campaign.totalPaidOut || 0).toLocaleString()} of ${(campaign.totalBudget || 0).toLocaleString()} paid out</p>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center border-y border-border py-4">
-                    <Metric title="REWARD" value={`$${campaign.payoutRate.toFixed(2)} / 1K`} primary />
+                    <Metric title="REWARD" value={`$${(campaign.payoutRate || 0).toFixed(2)} / 1K`} primary />
                     <Metric title="TYPE" value={campaign.type} />
                     <Metric title="MINIMUM PAYOUT" value={`$${campaign.minimumPayout?.toFixed(2) || '1.00'}`} />
                     <Metric title="MAXIMUM PAYOUT" value={`$${campaign.maximumPayout?.toFixed(2) || '250.00'}`} />
                     <Metric title="CATEGORY" value={campaign.category || 'N/A'} />
                     <Metric title="PLATFORMS">
                         <div className="flex justify-center gap-2 mt-1">
-                            {campaign.platforms.map(p => {
+                            {(campaign.platforms || []).map(p => {
                                 const Icon = platformIcons[p];
                                 return <Icon key={p} className="h-6 w-6" />;
                             })}
@@ -119,17 +119,17 @@ const ContentRewardDetailPage: React.FC = () => {
                 <div>
                     <h2 className="text-sm font-bold uppercase text-text-secondary tracking-wider mb-3">Requirements</h2>
                     <div className="flex flex-wrap gap-2">
-                        {campaign.requirements.map((req, i) => (
+                        {(campaign.requirements || []).map((req, i) => (
                             <span key={i} className="px-3 py-2 text-sm bg-surface rounded-lg">{req}</span>
                         ))}
                     </div>
                 </div>
 
-                {campaign.assets && campaign.assets.length > 0 && (
+                {(campaign.assets || []).length > 0 && (
                     <div>
                         <h2 className="text-sm font-bold uppercase text-text-secondary tracking-wider mb-3">Assets</h2>
                         <div className="space-y-2">
-                        {campaign.assets.map((asset, i) => (
+                        {(campaign.assets || []).map((asset, i) => (
                            <a href={asset.url} target="_blank" rel="noopener noreferrer" key={i} className="flex items-center gap-3 p-3 bg-surface rounded-lg hover:bg-surface/80 transition-colors">
                                 <DocumentTextIcon className="h-6 w-6 text-text-secondary" />
                                 <div>
