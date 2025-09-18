@@ -1,9 +1,10 @@
 
 
+
 import React, { useState } from 'react';
 import { Routes, Route, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { ClipboardCheckIcon, TagIcon, UserCircleIcon, MegaphoneIcon } from '../../components/icons/Icons';
+import { ClipboardCheckIcon, TagIcon, UserCircleIcon, BanknotesIcon } from '../../components/icons/Icons';
 import TasksPage from './TasksPage';
 import CampaignsPage from './CampaignsPage';
 import CampaignDetailPage from './CampaignDetailPage';
@@ -23,7 +24,7 @@ type AffiliateTab = '' | 'campaigns' | 'rewards' | 'profile';
 const TABS: { id: AffiliateTab; label: string; icon: React.FC<{className?:string}> }[] = [
     { id: '', label: 'Tasks', icon: ClipboardCheckIcon },
     { id: 'campaigns', label: 'Campaigns', icon: TagIcon },
-    { id: 'rewards', label: 'Rewards', icon: MegaphoneIcon },
+    { id: 'rewards', label: 'Rewards', icon: BanknotesIcon },
     { id: 'profile', label: 'Profile', icon: UserCircleIcon },
 ];
 

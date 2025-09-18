@@ -124,6 +124,7 @@ export interface GlobalSettings {
   youtubeTutorialUrl?: string;
   contentRewardsHeaderText?: string;
   contentRewardsHeaderSubtext?: string;
+  contentRewardsLearnMoreUrl?: string;
 }
 
 // --- New Types for Community Engagement ---

@@ -1,8 +1,9 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import Button from '../../components/ui/Button';
-import { LogoutIcon, DocumentTextIcon, ChartBarIcon, StarIcon, SparklesIcon, TagIcon, TrophyIcon, BookOpenIcon, TicketIcon, UsersIcon, KeyIcon, Cog6ToothIcon, ClipboardCheckIcon, DocumentMagnifyingGlassIcon, MegaphoneIcon } from '../../components/icons/Icons';
+import { LogoutIcon, DocumentTextIcon, ChartBarIcon, StarIcon, SparklesIcon, TagIcon, TrophyIcon, BookOpenIcon, TicketIcon, UsersIcon, KeyIcon, Cog6ToothIcon, ClipboardCheckIcon, DocumentMagnifyingGlassIcon, BanknotesIcon } from '../../components/icons/Icons';
 import SampleRequestQueue from './SampleRequestQueue';
 import AiChatbotManager from './AiChatbotManager';
 import CampaignsManager from './CampaignsManager';
@@ -88,7 +89,7 @@ const AdminDashboard: React.FC = () => {
         <nav className="flex-1 px-4 py-6 space-y-2">
           <AdminNavLink text="Onboarding" icon={ClipboardCheckIcon} active={activeTab === 'onboarding'} onClick={() => setActiveTab('onboarding')} badge={onboardingRequests.length > 0 ? onboardingRequests.length : undefined} />
           <AdminNavLink text="Analytics" icon={ChartBarIcon} active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
-          <AdminNavLink text="Content Rewards" icon={MegaphoneIcon} active={activeTab === 'content-rewards'} onClick={() => setActiveTab('content-rewards')} />
+          <AdminNavLink text="Content Rewards" icon={BanknotesIcon} active={activeTab === 'content-rewards'} onClick={() => setActiveTab('content-rewards')} />
           <AdminNavLink text="Sample Requests" icon={DocumentTextIcon} active={activeTab === 'requests'} onClick={() => setActiveTab('requests')} />
           <AdminNavLink text="Campaigns" icon={TagIcon} active={activeTab === 'campaigns'} onClick={() => setActiveTab('campaigns')} />
           <AdminNavLink text="Affiliates" icon={UsersIcon} active={activeTab === 'affiliates'} onClick={() => setActiveTab('affiliates')} />

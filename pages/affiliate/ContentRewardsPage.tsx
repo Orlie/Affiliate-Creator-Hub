@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { ContentRewardCampaign, GlobalSettings } from '../../types';
 import { listenToContentRewardCampaigns, listenToGlobalSettings } from '../../services/mockApi';
@@ -38,13 +39,28 @@ const ContentRewardsPage: React.FC = () => {
     }, [campaigns, sortBy]);
 
     const headerText = settings?.contentRewardsHeaderText || "Content Rewards";
-    const subtext = settings?.contentRewardsHeaderSubtext || "Post content on social media and get paid for the views you generate. Learn more.";
+    const defaultSubtext = "Create TikTok shoppable videos and get paid for the views you generate. Learn more.";
+    const subtext = settings?.contentRewardsHeaderSubtext || defaultSubtext;
+    const learnMoreUrl = settings?.contentRewardsLearnMoreUrl;
+
+    const learnMoreMatch = subtext.match(/Learn more\./i);
+    const mainText = learnMoreMatch ? subtext.substring(0, learnMoreMatch.index) : subtext;
+    const learnMoreText = learnMoreMatch ? learnMoreMatch[0] : '';
 
     return (
         <div className="space-y-4">
             <div className="text-center">
                 <h1 className="text-2xl font-bold text-text-primary">{headerText}</h1>
-                <p className="text-sm text-text-secondary mt-1 whitespace-pre-wrap">{subtext}</p>
+                 <p className="text-sm text-text-secondary mt-1 whitespace-pre-wrap">
+                    {mainText}
+                    {learnMoreUrl && learnMoreText ? (
+                        <a href={learnMoreUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline ml-1">
+                        {learnMoreText}
+                        </a>
+                    ) : (
+                        learnMoreText
+                    )}
+                </p>
             </div>
 
             <div className="flex justify-between items-center">

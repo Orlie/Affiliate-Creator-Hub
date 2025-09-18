@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { GlobalSettings } from '../../types';
 import { listenToGlobalSettings, updateGlobalSettings } from '../../services/mockApi';
@@ -26,6 +27,7 @@ const SettingsManager: React.FC = () => {
   // Content Rewards state
   const [rewardsHeaderText, setRewardsHeaderText] = useState('');
   const [rewardsHeaderSubtext, setRewardsHeaderSubtext] = useState('');
+  const [rewardsLearnMoreUrl, setRewardsLearnMoreUrl] = useState('');
   const [isSavingRewards, setIsSavingRewards] = useState(false);
   const [rewardsSaved, setRewardsSaved] = useState(false);
 
@@ -40,6 +42,7 @@ const SettingsManager: React.FC = () => {
         setYoutubeUrl(data.youtubeTutorialUrl || '');
         setRewardsHeaderText(data.contentRewardsHeaderText || '');
         setRewardsHeaderSubtext(data.contentRewardsHeaderSubtext || '');
+        setRewardsLearnMoreUrl(data.contentRewardsLearnMoreUrl || '');
       }
       setLoading(false);
     });
@@ -104,6 +107,7 @@ const SettingsManager: React.FC = () => {
       await updateGlobalSettings({
         contentRewardsHeaderText: rewardsHeaderText,
         contentRewardsHeaderSubtext: rewardsHeaderSubtext,
+        contentRewardsLearnMoreUrl: rewardsLearnMoreUrl,
       });
       setRewardsSaved(true);
       setTimeout(() => setRewardsSaved(false), 2500);
@@ -176,6 +180,12 @@ const SettingsManager: React.FC = () => {
                             onChange={(e) => setRewardsHeaderSubtext(e.target.value)}
                             placeholder="Post content on social media..."
                             rows={3}
+                        />
+                        <Input
+                            label="Rewards 'Learn More' URL"
+                            value={rewardsLearnMoreUrl}
+                            onChange={(e) => setRewardsLearnMoreUrl(e.target.value)}
+                            placeholder="https://docs.google.com/..."
                         />
                     </div>
                     <div className="mt-6">
