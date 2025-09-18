@@ -13,11 +13,10 @@ import IncentivesPage from './IncentivesPage';
 import ProfilePage from './ProfilePage';
 import TicketsPage from './TicketsPage';
 import MyRequestsPage from './MyRequestsPage';
-import ContentRewardsPage from './ContentRewardsPage';
+import RewardsHubPage from './RewardsHubPage';
 import ContentRewardDetailPage from './ContentRewardDetailPage';
 import CommunityOnboardingGate from '../../components/affiliate/CommunityOnboardingGate';
 import WeeklySurveyModal from '../../components/affiliate/WeeklySurveyModal';
-import MySubmissionsPage from './MySubmissionsPage';
 
 type AffiliateTab = '' | 'campaigns' | 'rewards' | 'profile';
 
@@ -77,8 +76,7 @@ const AffiliateDashboard: React.FC = () => {
                     <Route path="/" element={<TasksPage />} />
                     <Route path="/campaigns" element={<CampaignsPage />} />
                     <Route path="/campaign/:campaignId" element={<CampaignDetailPage onActionSuccess={triggerSurvey} />} />
-                    <Route path="/rewards" element={<ContentRewardsPage />} />
-                    <Route path="/rewards/my-submissions" element={<MySubmissionsPage />} />
+                    <Route path="/rewards" element={<RewardsHubPage />} />
                     <Route path="/rewards/:campaignId" element={<ContentRewardDetailPage />} />
                     <Route path="/leaderboard" element={<LeaderboardPage />} />
                     <Route path="/resources" element={<ResourcesPage />} />

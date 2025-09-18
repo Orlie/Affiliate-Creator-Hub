@@ -1,11 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { ContentSubmission } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { listenToSubmissionsForAffiliate } from '../../services/mockApi';
 import Card, { CardContent } from '../../components/ui/Card';
-import { ChevronLeftIcon } from '../../components/icons/Icons';
 import SubmissionCard from '../../components/affiliate/SubmissionCard';
 
 const MySubmissionsPage: React.FC = () => {
@@ -27,15 +24,7 @@ const MySubmissionsPage: React.FC = () => {
     }, [user]);
 
     return (
-        <div className="p-4 space-y-4">
-            <div className="flex justify-between items-center">
-                <Link to="/rewards" className="flex items-center text-sm text-text-secondary hover:text-primary font-medium">
-                    <ChevronLeftIcon className="h-5 w-5 mr-1" />
-                    Back to Rewards
-                </Link>
-            </div>
-            <h2 className="text-xl font-bold text-text-primary text-center">My Submissions</h2>
-
+        <div className="space-y-4">
             {loading && <p className="text-center text-text-secondary">Loading your submissions...</p>}
             
             {!loading && submissions.length === 0 && (

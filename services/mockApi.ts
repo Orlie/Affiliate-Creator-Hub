@@ -1,4 +1,3 @@
-
 import { 
     User, Campaign, SampleRequest, SampleRequestStatus, Leaderboard, ResourceArticle, 
     IncentiveCampaign, Ticket, TicketStatus, LeaderboardEntry, PasswordResetRequest, GlobalSettings,
@@ -832,6 +831,16 @@ export const submitContentForReview = async (data: Omit<ContentSubmission, 'id' 
         // 2. Increment the participant count on the parent campaign
         const campaignRef = doc(db, 'contentRewardCampaigns', data.campaignId);
         transaction.update(campaignRef, { participantCount: increment(1) });
+    });
+};
+
+export const resubmitContentForReview = async (submissionId: string, videoUrl: string): Promise<void> => {
+    if (!db) return;
+    await updateDoc(doc(db, 'contentSubmissions', submissionId), {
+        videoUrl,
+        status: 'PendingReview',
+        rejectionReason: '', // Clear previous reason
+        submittedAt: serverTimestamp() // Update submission time
     });
 };
 

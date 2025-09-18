@@ -1,10 +1,7 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import { ContentRewardCampaign, GlobalSettings } from '../../types';
 import { listenToContentRewardCampaigns, listenToGlobalSettings } from '../../services/mockApi';
 import ContentRewardCampaignCard from '../../components/affiliate/ContentRewardCampaignCard';
-import Button from '../../components/ui/Button';
 
 const ContentRewardsPage: React.FC = () => {
     const [campaigns, setCampaigns] = useState<ContentRewardCampaign[]>([]);
@@ -44,15 +41,11 @@ const ContentRewardsPage: React.FC = () => {
     const subtext = settings?.contentRewardsHeaderSubtext || "Post content on social media and get paid for the views you generate. Learn more.";
 
     return (
-        <div className="p-4 space-y-4">
+        <div className="space-y-4">
             <div className="text-center">
                 <h1 className="text-2xl font-bold text-text-primary">{headerText}</h1>
                 <p className="text-sm text-text-secondary mt-1 whitespace-pre-wrap">{subtext}</p>
             </div>
-
-            <Link to="/rewards/my-submissions">
-                <Button variant="secondary" className="w-full">View My Submissions</Button>
-            </Link>
 
             <div className="flex justify-between items-center">
                 <p className="text-sm font-medium text-text-secondary">{sortedCampaigns.length} Live Content Rewards</p>

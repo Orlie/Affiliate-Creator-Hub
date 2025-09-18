@@ -1,13 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ContentRewardCampaign, ContentSubmission } from '../../types';
-import { listenToContentRewardCampaigns, listenToSubmissionsForAffiliate, submitContentForReview, submitPayoutEvidence } from '../../services/mockApi';
+import { listenToContentRewardCampaigns, listenToSubmissionsForAffiliate, submitContentForReview, resubmitContentForReview, submitPayoutEvidence } from '../../services/mockApi';
 import { useAuth } from '../../contexts/AuthContext';
 import Card, { CardContent } from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { ChevronLeftIcon } from '../../components/icons/Icons';
+import StatusStepper from '../../components/affiliate/StatusStepper';
 
 const ContentRewardDetailPage: React.FC = () => {
     const { campaignId } = useParams<{ campaignId: string }>();
@@ -21,7 +21,7 @@ const ContentRewardDetailPage: React.FC = () => {
     const [screenshotUrl, setScreenshotUrl] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [estimatedViews, setEstimatedViews] = useState('');
-     const estimatedEarnings = campaign ? (Number(estimatedViews) / 1000) * campaign.payoutRate : 0;
+    const estimatedEarnings = campaign ? (Number(estimatedViews) / 1000) * campaign.payoutRate : 0;
 
     useEffect(() => {
         if (!campaignId) return;
@@ -33,11 +33,14 @@ const ContentRewardDetailPage: React.FC = () => {
         });
 
         const unsubSubmissions = user ? listenToSubmissionsForAffiliate(user.uid, subs => {
-            const current = subs.find(s => s.campaignId === campaignId);
-            setSubmission(current || null);
+             const campaignSubs = subs
+                .filter(s => s.campaignId === campaignId)
+                .sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime()); // Most recent first
+            setSubmission(campaignSubs[0] || null);
         }) : () => {};
 
-        setLoading(false);
+        // Only set loading to false after both listeners have had a chance to fire
+        setTimeout(() => setLoading(false), 500);
 
         return () => {
             unsubCampaigns();
@@ -55,6 +58,14 @@ const ContentRewardDetailPage: React.FC = () => {
             affiliateTiktok: user.tiktokUsername || '',
             videoUrl,
         });
+        setVideoUrl('');
+        setIsSubmitting(false);
+    };
+    
+    const handleResubmitVideo = async () => {
+        if (!videoUrl || !submission) return;
+        setIsSubmitting(true);
+        await resubmitContentForReview(submission.id, videoUrl);
         setVideoUrl('');
         setIsSubmitting(false);
     };
@@ -110,18 +121,29 @@ const ContentRewardDetailPage: React.FC = () => {
                 <Card>
                     <CardContent>
                         <h2 className="font-bold text-lg">Your Submission</h2>
-                        {!submission ? (
-                            <div className="space-y-2 mt-2">
-                                <p className="text-sm text-text-secondary">Submit your video link to participate.</p>
-                                <Input value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://tiktok.com/..." />
-                                <Button className="w-full" onClick={handleSubmitVideo} disabled={!videoUrl || isSubmitting}>{isSubmitting ? 'Submitting...' : 'Submit Video'}</Button>
+                        {!submission || submission.status === 'Rejected' ? (
+                            <div className="mt-2">
+                                {submission?.status === 'Rejected' && (
+                                     <div className="mb-4 p-3 bg-red-900/50 rounded-lg">
+                                        <p className="font-bold text-red-300">Feedback from Admin:</p>
+                                        <p className="text-sm text-red-300 mt-1">{submission.rejectionReason || 'No reason provided.'}</p>
+                                         <p className="text-xs text-red-200 mt-2">Please submit a new video link below based on this feedback.</p>
+                                    </div>
+                                )}
+                                <div className="space-y-2">
+                                    <p className="text-sm text-text-secondary">Submit your video link to participate.</p>
+                                    <Input value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://tiktok.com/..." />
+                                    <Button className="w-full" onClick={submission ? handleResubmitVideo : handleSubmitVideo} disabled={!videoUrl || isSubmitting}>{isSubmitting ? 'Submitting...' : submission ? 'Re-submit Video' : 'Submit Video'}</Button>
+                                </div>
                             </div>
                         ) : (
                             <div className="mt-2 space-y-4">
-                                <div>
-                                    <p className="text-sm font-semibold">Status: <span className="text-primary">{submission.status.replace(/([A-Z])/g, ' $1').trim()}</span></p>
-                                    <a href={submission.videoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-text-secondary hover:underline">View Your Submission</a>
+                               <StatusStepper status={submission.status} />
+                                <div className="text-sm text-text-secondary">
+                                    <p><strong>Submitted:</strong> {submission.submittedAt.toLocaleString()}</p>
+                                    <a href={submission.videoUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">View Your Submitted Video</a>
                                 </div>
+
                                 {submission.status === 'Approved' && (
                                      <div>
                                         <h3 className="font-semibold">Earnings Estimator</h3>
