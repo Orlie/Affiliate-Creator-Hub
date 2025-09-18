@@ -1,7 +1,9 @@
+
 import { 
     User, Campaign, SampleRequest, SampleRequestStatus, Leaderboard, ResourceArticle, 
     IncentiveCampaign, Ticket, TicketStatus, LeaderboardEntry, PasswordResetRequest, GlobalSettings,
-    SurveySubmission, SurveyChoice, Sentiment, SurveyStatus, AdminTask, AdminTaskStatus, DrawWinner
+    SurveySubmission, SurveyChoice, Sentiment, SurveyStatus, AdminTask, AdminTaskStatus, DrawWinner,
+    ContentRewardCampaign, ContentSubmission
 } from '../types';
 import { db } from '../firebase';
 // FIX: Updated the `firebase/firestore` import to use the `@firebase/firestore` scope for consistency.
@@ -769,4 +771,103 @@ export const runWeeklyDraw = async (): Promise<DrawWinner | null> => {
 export const listenToWeeklyDrawWinners = (onUpdate: (winners: DrawWinner[]) => void): (() => void) => {
     const q = query(collection(db, 'drawWinners'), orderBy('weekOf', 'desc'));
     return createListener<DrawWinner>(q, onUpdate);
+};
+
+
+// --- CONTENT REWARDS API ---
+
+export const listenToContentRewardCampaigns = (onUpdate: (campaigns: ContentRewardCampaign[]) => void): (() => void) => {
+    const q = query(collection(db, 'contentRewardCampaigns'), where('status', '==', 'Active'), orderBy('createdAt', 'desc'));
+    return createListener<ContentRewardCampaign>(q, onUpdate);
+};
+
+export const listenToAllContentRewardCampaignsAdmin = (onUpdate: (campaigns: ContentRewardCampaign[]) => void): (() => void) => {
+    const q = query(collection(db, 'contentRewardCampaigns'), orderBy('createdAt', 'desc'));
+    return createListener<ContentRewardCampaign>(q, onUpdate);
+};
+
+export const addContentRewardCampaign = async (campaignData: Omit<ContentRewardCampaign, 'id' | 'totalPaidOut' | 'participantCount' | 'totalViews' | 'createdAt'>): Promise<void> => {
+    if (!db) return;
+    const data = {
+        ...campaignData,
+        totalPaidOut: 0,
+        participantCount: 0,
+        totalViews: 0,
+        createdAt: serverTimestamp()
+    };
+    await addDoc(collection(db, 'contentRewardCampaigns'), data);
+};
+
+export const updateContentRewardCampaign = async (campaignId: string, data: Partial<ContentRewardCampaign>): Promise<void> => {
+    if (!db) return;
+    await updateDoc(doc(db, 'contentRewardCampaigns', campaignId), data);
+};
+
+export const listenToSubmissionsForCampaign = (campaignId: string, onUpdate: (submissions: ContentSubmission[]) => void): (() => void) => {
+    const q = query(collection(db, 'contentSubmissions'), where('campaignId', '==', campaignId), orderBy('submittedAt', 'desc'));
+    return createListener<ContentSubmission>(q, onUpdate);
+};
+
+export const listenToSubmissionsForAffiliate = (affiliateId: string, onUpdate: (submissions: ContentSubmission[]) => void): (() => void) => {
+    const q = query(collection(db, 'contentSubmissions'), where('affiliateId', '==', affiliateId), orderBy('submittedAt', 'desc'));
+    return createListener<ContentSubmission>(q, onUpdate);
+};
+
+export const submitContentForReview = async (data: Omit<ContentSubmission, 'id' | 'status' | 'submittedAt'>): Promise<void> => {
+    if (!db) return;
+    
+    await runTransaction(db, async (transaction) => {
+        // 1. Create the new submission
+        const newSubmissionRef = doc(collection(db, 'contentSubmissions'));
+        const newSubmissionData = {
+            ...data,
+            status: 'PendingReview' as const,
+            submittedAt: serverTimestamp()
+        };
+        transaction.set(newSubmissionRef, newSubmissionData);
+        
+        // 2. Increment the participant count on the parent campaign
+        const campaignRef = doc(db, 'contentRewardCampaigns', data.campaignId);
+        transaction.update(campaignRef, { participantCount: increment(1) });
+    });
+};
+
+export const updateContentSubmission = async (submissionId: string, data: Partial<ContentSubmission>): Promise<void> => {
+    if (!db) return;
+    await updateDoc(doc(db, 'contentSubmissions', submissionId), data);
+};
+
+export const finalizeSubmissionPayout = async (submission: ContentSubmission, finalViewCount: number): Promise<void> => {
+    if (!db) return;
+    
+    await runTransaction(db, async (transaction) => {
+        const campaignRef = doc(db, 'contentRewardCampaigns', submission.campaignId);
+        const campaignDoc = await transaction.get(campaignRef);
+        if (!campaignDoc.exists()) throw new Error("Campaign not found!");
+
+        const campaign = campaignDoc.data() as ContentRewardCampaign;
+        const earnings = (finalViewCount / 1000) * campaign.payoutRate;
+
+        // 1. Update the submission with views, earnings, and status
+        const submissionRef = doc(db, 'contentSubmissions', submission.id);
+        transaction.update(submissionRef, {
+            finalViewCount,
+            calculatedEarnings: earnings,
+            status: 'Paid'
+        });
+
+        // 2. Atomically update the campaign's aggregate stats
+        transaction.update(campaignRef, {
+            totalPaidOut: increment(earnings),
+            totalViews: increment(finalViewCount)
+        });
+    });
+};
+
+export const submitPayoutEvidence = async (submissionId: string, screenshotUrl: string): Promise<void> => {
+    if (!db) return;
+    await updateDoc(doc(db, 'contentSubmissions', submissionId), {
+        screenshotUrl,
+        status: 'AwaitingPayout'
+    });
 };

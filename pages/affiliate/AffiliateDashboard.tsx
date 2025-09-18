@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { ClipboardCheckIcon, TagIcon, UserCircleIcon } from '../../components/icons/Icons';
+import { ClipboardCheckIcon, TagIcon, UserCircleIcon, MegaphoneIcon } from '../../components/icons/Icons';
 import TasksPage from './TasksPage';
 import CampaignsPage from './CampaignsPage';
 import CampaignDetailPage from './CampaignDetailPage';
@@ -13,14 +13,17 @@ import IncentivesPage from './IncentivesPage';
 import ProfilePage from './ProfilePage';
 import TicketsPage from './TicketsPage';
 import MyRequestsPage from './MyRequestsPage';
+import ContentRewardsPage from './ContentRewardsPage';
+import ContentRewardDetailPage from './ContentRewardDetailPage';
 import CommunityOnboardingGate from '../../components/affiliate/CommunityOnboardingGate';
 import WeeklySurveyModal from '../../components/affiliate/WeeklySurveyModal';
 
-type AffiliateTab = '' | 'campaigns' | 'profile';
+type AffiliateTab = '' | 'campaigns' | 'rewards' | 'profile';
 
 const TABS: { id: AffiliateTab; label: string; icon: React.FC<{className?:string}> }[] = [
     { id: '', label: 'Tasks', icon: ClipboardCheckIcon },
     { id: 'campaigns', label: 'Campaigns', icon: TagIcon },
+    { id: 'rewards', label: 'Rewards', icon: MegaphoneIcon },
     { id: 'profile', label: 'Profile', icon: UserCircleIcon },
 ];
 
@@ -41,6 +44,7 @@ const AffiliateDashboard: React.FC = () => {
     if (currentPath === 'campaign' || TABS.map(t => t.id).includes(currentPath as AffiliateTab)) {
         activeTabId = currentPath as AffiliateTab;
         if (currentPath.startsWith('campaign')) activeTabId = 'campaigns';
+        if (currentPath.startsWith('rewards')) activeTabId = 'rewards';
     } else {
         // If the path is for a page now nested under profile, set profile as active
         if (['leaderboard', 'resources', 'incentives', 'tickets', 'my-requests'].includes(currentPath)) {
@@ -72,6 +76,8 @@ const AffiliateDashboard: React.FC = () => {
                     <Route path="/" element={<TasksPage />} />
                     <Route path="/campaigns" element={<CampaignsPage />} />
                     <Route path="/campaign/:campaignId" element={<CampaignDetailPage onActionSuccess={triggerSurvey} />} />
+                    <Route path="/rewards" element={<ContentRewardsPage />} />
+                    <Route path="/rewards/:campaignId" element={<ContentRewardDetailPage />} />
                     <Route path="/leaderboard" element={<LeaderboardPage />} />
                     <Route path="/resources" element={<ResourcesPage />} />
                     <Route path="/incentives" element={<IncentivesPage />} />

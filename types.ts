@@ -157,3 +157,40 @@ export interface DrawWinner {
     affiliateTiktok: string;
     weekOf: Date;
 }
+
+// --- New Types for Content Rewards ---
+
+export type CampaignPlatform = 'TikTok' | 'Instagram' | 'YouTube';
+
+export interface ContentRewardCampaign {
+  id: string;
+  title: string;
+  imageUrl: string;
+  contentBrief: string;
+  payoutRate: number;
+  totalBudget: number;
+  totalPaidOut: number;
+  participantCount: number;
+  totalViews: number;
+  type: string; // e.g., 'Clipping', 'UGC'
+  platforms: CampaignPlatform[];
+  status: 'Active' | 'Ended';
+  createdAt: Date;
+}
+
+export interface ContentSubmission {
+  id: string;
+  campaignId: string;
+  campaignTitle: string;
+  affiliateId: string;
+  affiliateTiktok: string;
+  videoUrl: string;
+  status: 'PendingReview' | 'Approved' | 'Rejected' | 'AwaitingPayout' | 'Paid';
+  rejectionReason?: string;
+  submittedAt: Date;
+  approvedAt?: Date;
+  trackingEndsAt?: Date;
+  screenshotUrl?: string;
+  finalViewCount?: number;
+  calculatedEarnings?: number;
+}
