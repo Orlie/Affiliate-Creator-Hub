@@ -122,6 +122,8 @@ export interface GlobalSettings {
   facebookGroupUrl?: string;
   tiktokShowcaseUrl?: string;
   youtubeTutorialUrl?: string;
+  contentRewardsHeaderText?: string;
+  contentRewardsHeaderSubtext?: string;
 }
 
 // --- New Types for Community Engagement ---

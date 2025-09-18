@@ -1,7 +1,7 @@
 
 
 import React, { useState } from 'react';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ClipboardCheckIcon, TagIcon, UserCircleIcon, MegaphoneIcon } from '../../components/icons/Icons';
 import TasksPage from './TasksPage';
@@ -17,6 +17,7 @@ import ContentRewardsPage from './ContentRewardsPage';
 import ContentRewardDetailPage from './ContentRewardDetailPage';
 import CommunityOnboardingGate from '../../components/affiliate/CommunityOnboardingGate';
 import WeeklySurveyModal from '../../components/affiliate/WeeklySurveyModal';
+import MySubmissionsPage from './MySubmissionsPage';
 
 type AffiliateTab = '' | 'campaigns' | 'rewards' | 'profile';
 
@@ -77,6 +78,7 @@ const AffiliateDashboard: React.FC = () => {
                     <Route path="/campaigns" element={<CampaignsPage />} />
                     <Route path="/campaign/:campaignId" element={<CampaignDetailPage onActionSuccess={triggerSurvey} />} />
                     <Route path="/rewards" element={<ContentRewardsPage />} />
+                    <Route path="/rewards/my-submissions" element={<MySubmissionsPage />} />
                     <Route path="/rewards/:campaignId" element={<ContentRewardDetailPage />} />
                     <Route path="/leaderboard" element={<LeaderboardPage />} />
                     <Route path="/resources" element={<ResourcesPage />} />

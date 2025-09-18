@@ -1,3 +1,4 @@
+
 import { 
     User, Campaign, SampleRequest, SampleRequestStatus, Leaderboard, ResourceArticle, 
     IncentiveCampaign, Ticket, TicketStatus, LeaderboardEntry, PasswordResetRequest, GlobalSettings,
@@ -27,7 +28,7 @@ const docToModel = (doc: DocumentSnapshot) => {
     return model;
 };
 
-const createListener = <T>(q: any, onUpdate: (data: T[]) => void): (() => void) => {
+const createListener = <T>(q: any, onUpdate: (data: T[]) => void, onError?: (error: Error) => void): (() => void) => {
     if (!db) {
         onUpdate([]);
         return () => {};
@@ -37,8 +38,9 @@ const createListener = <T>(q: any, onUpdate: (data: T[]) => void): (() => void) 
         onUpdate(data);
     }, (error) => {
         console.error("Error listening to collection:", error);
-        // DO NOT clear the UI on a listener error. The user should see the last good state.
-        // onUpdate([]);
+        if (onError) {
+            onError(error);
+        }
     });
     return unsubscribe;
 };
@@ -804,9 +806,9 @@ export const updateContentRewardCampaign = async (campaignId: string, data: Part
     await updateDoc(doc(db, 'contentRewardCampaigns', campaignId), data);
 };
 
-export const listenToSubmissionsForCampaign = (campaignId: string, onUpdate: (submissions: ContentSubmission[]) => void): (() => void) => {
+export const listenToSubmissionsForCampaign = (campaignId: string, onUpdate: (submissions: ContentSubmission[]) => void, onError?: (error: Error) => void): (() => void) => {
     const q = query(collection(db, 'contentSubmissions'), where('campaignId', '==', campaignId), orderBy('submittedAt', 'desc'));
-    return createListener<ContentSubmission>(q, onUpdate);
+    return createListener<ContentSubmission>(q, onUpdate, onError);
 };
 
 export const listenToSubmissionsForAffiliate = (affiliateId: string, onUpdate: (submissions: ContentSubmission[]) => void): (() => void) => {

@@ -105,16 +105,26 @@ type ReviewTab = 'PendingReview' | 'Approved' | 'AwaitingPayout' | 'Paid' | 'Rej
 const ContentSubmissionReview: React.FC<{ campaign: ContentRewardCampaign, onBack: () => void }> = ({ campaign, onBack }) => {
     const [submissions, setSubmissions] = useState<ContentSubmission[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<ReviewTab>('PendingReview');
     const [rejectionReason, setRejectionReason] = useState('');
     const [finalViews, setFinalViews] = useState<Record<string, string>>({});
 
     useEffect(() => {
         setLoading(true);
-        const unsubscribe = listenToSubmissionsForCampaign(campaign.id, data => {
-            setSubmissions(data);
-            setLoading(false);
-        });
+        setError(null);
+        const unsubscribe = listenToSubmissionsForCampaign(
+            campaign.id, 
+            data => {
+                setSubmissions(data);
+                setLoading(false);
+            },
+            (err) => {
+                console.error("Submission listener error:", err);
+                setError("Could not load submissions. This is often caused by a missing database index. Please open the developer console (F12) and look for a Firestore error message containing a link to create the required index.");
+                setLoading(false);
+            }
+        );
         return () => unsubscribe();
     }, [campaign.id]);
     
@@ -148,8 +158,9 @@ const ContentSubmissionReview: React.FC<{ campaign: ContentRewardCampaign, onBac
             
             <div className="mt-8 space-y-4">
                 {loading && <p>Loading submissions...</p>}
-                {!loading && filteredSubmissions.length === 0 && <p>No submissions in this queue.</p>}
-                {filteredSubmissions.map(sub => (
+                {error && <p className="p-4 text-center bg-red-900/50 text-red-300 rounded-lg">{error}</p>}
+                {!loading && !error && filteredSubmissions.length === 0 && <p>No submissions in this queue.</p>}
+                {!loading && !error && filteredSubmissions.map(sub => (
                     <Card key={sub.id}>
                         <CardContent>
                             <p className="font-bold">{sub.affiliateTiktok}</p>
