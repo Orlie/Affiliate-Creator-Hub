@@ -1,4 +1,3 @@
-
 import { 
     User, Campaign, SampleRequest, SampleRequestStatus, Leaderboard, ResourceArticle, 
     IncentiveCampaign, Ticket, TicketStatus, LeaderboardEntry, PasswordResetRequest, GlobalSettings,
@@ -38,7 +37,8 @@ const createListener = <T>(q: any, onUpdate: (data: T[]) => void): (() => void) 
         onUpdate(data);
     }, (error) => {
         console.error("Error listening to collection:", error);
-        onUpdate([]);
+        // DO NOT clear the UI on a listener error. The user should see the last good state.
+        // onUpdate([]);
     });
     return unsubscribe;
 };
@@ -62,7 +62,8 @@ const createUserListener = (q: any, onUpdate: (data: User[]) => void): (() => vo
         onUpdate(data.filter(Boolean)); // Filter out any null models
     }, (error) => {
         console.error("Error listening to user collection:", error);
-        onUpdate([]);
+        // DO NOT clear the UI on a listener error. The user should see the last good state.
+        // onUpdate([]);
     });
     return unsubscribe;
 };
