@@ -1,4 +1,3 @@
-
 export type UserRole = 'Admin' | 'Affiliate';
 export type Theme = 'light' | 'dark';
 
@@ -169,16 +168,25 @@ export interface ContentRewardCampaign {
   id: string;
   title: string;
   imageUrl: string;
-  contentBrief: string;
   payoutRate: number;
   totalBudget: number;
   totalPaidOut: number;
   participantCount: number;
   totalViews: number;
-  type: string; // e.g., 'Clipping', 'UGC'
+  type: string;
   platforms: CampaignPlatform[];
   status: 'Active' | 'Ended';
   createdAt: Date;
+  // New detailed fields
+  infoBannerText?: string;
+  minimumPayout?: number;
+  maximumPayout?: number;
+  category?: string;
+  requirements: string[];
+  assets: { title: string; url: string }[];
+  disclaimer?: string;
+  // Deprecated field, replaced by requirements array
+  contentBrief: string; 
 }
 
 export interface ContentSubmission {

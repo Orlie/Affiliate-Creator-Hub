@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { ContentRewardCampaign, ContentSubmission, CampaignPlatform } from '../../types';
 import { listenToAllContentRewardCampaignsAdmin, addContentRewardCampaign, updateContentRewardCampaign, listenToSubmissionsForCampaign, updateContentSubmission, finalizeSubmissionPayout } from '../../services/mockApi';
@@ -7,12 +6,19 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Textarea from '../../components/ui/Textarea';
 
+// --- Helper type for the modal form state ---
+type EditableCampaign = Omit<Partial<ContentRewardCampaign>, 'requirements' | 'assets'> & {
+    requirements?: string; // Stored as a newline-separated string in the form
+    assets?: { title: string; url: string }[];
+};
+
+
 const ContentRewardsManager: React.FC = () => {
     const [campaigns, setCampaigns] = useState<ContentRewardCampaign[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedCampaign, setSelectedCampaign] = useState<ContentRewardCampaign | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [currentCampaignData, setCurrentCampaignData] = useState<Partial<ContentRewardCampaign> | null>(null);
+    const [currentCampaignData, setCurrentCampaignData] = useState<EditableCampaign | null>(null);
 
     useEffect(() => {
         setLoading(true);
@@ -24,7 +30,16 @@ const ContentRewardsManager: React.FC = () => {
     }, []);
     
     const handleOpenModal = (campaign?: ContentRewardCampaign) => {
-        setCurrentCampaignData(campaign || {});
+        if (campaign) {
+            // Convert arrays to string/object for editing
+            setCurrentCampaignData({
+                ...campaign,
+                requirements: campaign.requirements?.join('\n') || '',
+                assets: campaign.assets || [],
+            });
+        } else {
+            setCurrentCampaignData({ requirements: '', assets: [], platforms: [] });
+        }
         setIsModalOpen(true);
     };
 
@@ -36,12 +51,20 @@ const ContentRewardsManager: React.FC = () => {
     const handleSaveCampaign = async () => {
         if (!currentCampaignData || !currentCampaignData.title) return;
         
-        const dataToSave = {
+        // Convert form data back to the correct types
+        const dataToSave: Partial<ContentRewardCampaign> = {
             ...currentCampaignData,
             payoutRate: Number(currentCampaignData.payoutRate || 0),
             totalBudget: Number(currentCampaignData.totalBudget || 0),
+            minimumPayout: Number(currentCampaignData.minimumPayout || 0),
+            maximumPayout: Number(currentCampaignData.maximumPayout || 0),
             platforms: currentCampaignData.platforms || [],
             status: currentCampaignData.status || 'Active',
+            requirements: typeof currentCampaignData.requirements === 'string' 
+                ? currentCampaignData.requirements.split('\n').filter(r => r.trim() !== '') 
+                : [],
+            assets: currentCampaignData.assets || [],
+            contentBrief: '', // Deprecated, but ensure it's cleared
         };
 
         if (currentCampaignData.id) {
@@ -198,7 +221,7 @@ const ContentSubmissionReview: React.FC<{ campaign: ContentRewardCampaign, onBac
 };
 
 // --- Campaign Create/Edit Modal ---
-const CampaignModal: React.FC<{campaign: Partial<ContentRewardCampaign> | null, onClose: () => void, onSave: () => void, setData: (data: any) => void}> = ({ campaign, onClose, onSave, setData }) => {
+const CampaignModal: React.FC<{campaign: EditableCampaign | null, onClose: () => void, onSave: () => void, setData: (data: any) => void}> = ({ campaign, onClose, onSave, setData }) => {
     if (!campaign) return null;
 
     const handlePlatformToggle = (platform: CampaignPlatform) => {
@@ -206,6 +229,15 @@ const CampaignModal: React.FC<{campaign: Partial<ContentRewardCampaign> | null, 
         const newPlatforms = current.includes(platform) ? current.filter(p => p !== platform) : [...current, platform];
         setData({ ...campaign, platforms: newPlatforms });
     };
+    
+    const handleAssetChange = (index: number, field: 'title' | 'url', value: string) => {
+        const newAssets = [...(campaign.assets || [])];
+        newAssets[index] = { ...newAssets[index], [field]: value };
+        setData({ ...campaign, assets: newAssets });
+    };
+
+    const addAsset = () => setData({ ...campaign, assets: [...(campaign.assets || []), { title: '', url: '' }] });
+    const removeAsset = (index: number) => setData({ ...campaign, assets: (campaign.assets || []).filter((_, i) => i !== index) });
 
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
@@ -214,12 +246,35 @@ const CampaignModal: React.FC<{campaign: Partial<ContentRewardCampaign> | null, 
                 <div className="p-6 space-y-4 overflow-y-auto flex-grow">
                     <Input label="Title" value={campaign.title || ''} onChange={e => setData({ ...campaign, title: e.target.value })} />
                     <Input label="Image URL" value={campaign.imageUrl || ''} onChange={e => setData({ ...campaign, imageUrl: e.target.value })} />
-                    <Textarea label="Content Brief" value={campaign.contentBrief || ''} onChange={e => setData({ ...campaign, contentBrief: e.target.value })} rows={5} />
-                    <div className="grid grid-cols-2 gap-4">
-                        <Input label="Payout Rate ($ per 1000 views)" type="number" value={campaign.payoutRate || ''} onChange={e => setData({ ...campaign, payoutRate: e.target.value })} />
+                    <Input label="Info Banner Text (Optional)" value={campaign.infoBannerText || ''} onChange={e => setData({ ...campaign, infoBannerText: e.target.value })} />
+                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <Input label="Payout Rate ($/1k views)" type="number" value={campaign.payoutRate || ''} onChange={e => setData({ ...campaign, payoutRate: e.target.value })} />
                         <Input label="Total Budget ($)" type="number" value={campaign.totalBudget || ''} onChange={e => setData({ ...campaign, totalBudget: e.target.value })} />
+                        <Input label="Minimum Payout ($)" type="number" value={campaign.minimumPayout || ''} onChange={e => setData({ ...campaign, minimumPayout: e.target.value })} />
+                        <Input label="Maximum Payout ($)" type="number" value={campaign.maximumPayout || ''} onChange={e => setData({ ...campaign, maximumPayout: e.target.value })} />
                     </div>
-                    <Input label="Campaign Type (e.g., Clipping, UGC)" value={campaign.type || ''} onChange={e => setData({ ...campaign, type: e.target.value })} />
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input label="Campaign Type (e.g., Clipping)" value={campaign.type || ''} onChange={e => setData({ ...campaign, type: e.target.value })} />
+                        <Input label="Category (e.g., Products)" value={campaign.category || ''} onChange={e => setData({ ...campaign, category: e.target.value })} />
+                    </div>
+                    <Textarea label="Requirements (one per line)" value={campaign.requirements || ''} onChange={e => setData({ ...campaign, requirements: e.target.value })} rows={5} />
+                    
+                    <div>
+                        <label className="block text-sm font-medium text-text-secondary mb-2">Assets</label>
+                        <div className="space-y-2">
+                        {(campaign.assets || []).map((asset, index) => (
+                            <div key={index} className="flex items-center gap-2 p-2 rounded-md bg-surface/50">
+                                <Input placeholder="Asset Title" value={asset.title} onChange={e => handleAssetChange(index, 'title', e.target.value)} className="flex-1" />
+                                <Input placeholder="Asset URL" value={asset.url} onChange={e => handleAssetChange(index, 'url', e.target.value)} className="flex-1" />
+                                <Button variant="danger" size="sm" onClick={() => removeAsset(index)}>X</Button>
+                            </div>
+                        ))}
+                        </div>
+                        <Button variant="secondary" size="sm" onClick={addAsset} className="mt-2">Add Asset</Button>
+                    </div>
+
+                    <Textarea label="Disclaimer (Optional)" value={campaign.disclaimer || ''} onChange={e => setData({ ...campaign, disclaimer: e.target.value })} rows={3} />
+
                      <div>
                         <label className="block text-sm font-medium text-text-secondary mb-1">Platforms</label>
                         <div className="flex gap-2">
