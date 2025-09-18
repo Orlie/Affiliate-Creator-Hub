@@ -834,16 +834,6 @@ export const submitContentForReview = async (data: Omit<ContentSubmission, 'id' 
     });
 };
 
-export const resubmitContentForReview = async (submissionId: string, videoUrl: string): Promise<void> => {
-    if (!db) return;
-    await updateDoc(doc(db, 'contentSubmissions', submissionId), {
-        videoUrl,
-        status: 'PendingReview',
-        rejectionReason: '', // Clear previous reason
-        submittedAt: serverTimestamp() // Update submission time
-    });
-};
-
 export const updateContentSubmission = async (submissionId: string, data: Partial<ContentSubmission>): Promise<void> => {
     if (!db) return;
     await updateDoc(doc(db, 'contentSubmissions', submissionId), data);
